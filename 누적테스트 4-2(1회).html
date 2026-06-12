@@ -66,17 +66,39 @@
     }
 
     // 2) 이름으로 워터마크 타일(SVG) 만들기
+    //    - 두 줄(이름 / 학원·무단배포금지·날짜)로 나누고,
+    //      타일 크기를 글자 길이에 맞춰 계산해서 긴 이름(이메일 등)도 잘리지 않음
+    function textWidth(s, fs) {
+      var w = 0;
+      for (var i = 0; i < s.length; i++) {
+        w += (s.charCodeAt(i) > 0x2000) ? fs : fs * 0.58;  // 한글=글자크기, 영문/숫자=절반쯤
+      }
+      return w;
+    }
+    function escXml(s) {
+      return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
     function makeWatermark(name) {
       var d = new Date();
       var today = d.getFullYear() + '.' +
                   ('0'+(d.getMonth()+1)).slice(-2) + '.' +
                   ('0'+d.getDate()).slice(-2);
-      var line = name + ' · ' + ACADEMY + ' · 무단배포금지 · ' + today;
-      var esc = line.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="760" height="460">' +
-                '<text x="380" y="230" font-size="34" fill="rgba(0,0,0,0.04)" ' +
-                'font-family="sans-serif" text-anchor="middle" ' +
-                'transform="rotate(-30 380 230)">' + esc + '</text></svg>';
+      var line1 = name;
+      var line2 = ACADEMY + ' · 무단배포금지 · ' + today;
+      var fs = 44;
+      var W = Math.max(textWidth(line1, fs), textWidth(line2, fs));
+      var blockH = fs * 2.4;                       // 두 줄 높이
+      var cos = Math.cos(Math.PI/6), sin = Math.sin(Math.PI/6);  // 30도 기울임
+      var svgW = Math.ceil(W*cos + blockH*sin) + 50;  // 기울인 글자가 다 들어가는 크기 + 여백
+      var svgH = Math.ceil(W*sin + blockH*cos) + 50;
+      var cx = svgW/2, cy = svgH/2;
+      var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + svgW + '" height="' + svgH + '">' +
+                '<g transform="rotate(-30 ' + cx + ' ' + cy + ')" font-family="sans-serif" ' +
+                'font-weight="bold" font-size="' + fs + '" text-anchor="middle" ' +
+                'fill="rgba(0,0,0,0.03)">' +
+                '<text x="' + cx + '" y="' + (cy - fs*0.3) + '">' + escXml(line1) + '</text>' +
+                '<text x="' + cx + '" y="' + (cy + fs*1.0) + '">' + escXml(line2) + '</text>' +
+                '</g></svg>';
       return 'url("data:image/svg+xml;utf8,' + encodeURIComponent(svg) + '")';
     }
 
